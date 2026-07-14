@@ -1,0 +1,32 @@
+[Unit]
+Description=Polymarket BTC 5m Up/Down momentum bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=polymarket
+Group=polymarket
+WorkingDirectory=/opt/polymarket-bot
+EnvironmentFile=/opt/polymarket-bot/.env
+ExecStart=/opt/polymarket-bot/.venv/bin/python /opt/polymarket-bot/main.py
+Restart=always
+RestartSec=5
+# Graceful shutdown for SIGTERM (systemd default kill is SIGTERM)
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# Hardening (optional but recommended)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/polymarket-bot/data /opt/polymarket-bot/logs
+
+# Logs go to journald; the process also writes rotating files under logs/
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=polymarket-bot
+
+[Install]
+WantedBy=multi-user.target
