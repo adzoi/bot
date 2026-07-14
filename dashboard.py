@@ -40,9 +40,15 @@ STATUS_FILE_PATH = os.environ.get(
     "STATUS_FILE_PATH",
     os.path.join(_ROOT, "status.json"),
 )
-PORT = int(os.environ.get("DASHBOARD_PORT", "5050"))
+PORT = int(os.environ.get("PORT") or os.environ.get("DASHBOARD_PORT") or "5050")
 
 app = Flask(__name__)
+
+
+@app.get("/health")
+def health():
+    """Railway / load-balancer health check."""
+    return jsonify({"ok": True})
 
 
 # ---------------------------------------------------------------------------

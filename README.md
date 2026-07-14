@@ -124,6 +124,23 @@ Columns: timestamp, market question/slug, outcome bought, trigger price, fill
 price, stake, shares, resolution outcome, realized P&L, running daily P&L
 after resolution.
 
+## Railway
+
+This app must serve HTTP on Railway’s `$PORT` or the public URL returns
+“Application failed to respond”. Use the bundled entrypoint:
+
+```bash
+python start.py   # starts the bot + dashboard on $PORT
+```
+
+`Procfile` / `railway.json` already set this as the start command. After
+deploy, open your Railway URL (e.g. `https://….up.railway.app`) for the
+live dashboard. Set secrets (`PK`, etc.) in the Railway Variables UI —
+do not commit `.env`.
+
+Note: the container filesystem is ephemeral unless you attach a Railway
+volume to `/app/data` (or set `LEDGER_DB_PATH` to a mounted path).
+
 ## systemd (24/7)
 
 1. Copy the project to `/opt/polymarket-bot` (or edit paths in the unit).
