@@ -200,10 +200,19 @@ PAGE = """
       </div>
     </div>
     <div class="card">
-      <div class="label">Last heartbeat</div>
-      <div class="value">{{ status.get('last_heartbeat', 'n/a') }}</div>
+      <div class="label">Window close (UTC)</div>
+      <div class="value" style="font-size:18px">{{ status.get('window_close_utc', 'n/a') }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Secs to close</div>
+      <div class="value">{{ status.get('secs_to_close', 'n/a') }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Last status (UTC)</div>
+      <div class="value" style="font-size:14px">{{ status.get('last_heartbeat', 'n/a') }}</div>
     </div>
   </div>
+  <div class="sub">Market: {{ status.get('market') or '-' }} &middot; polls={{ status.get('polls', 0) }} &middot; windows are UTC :00/:05/:10/:15/…</div>
   {% else %}
   <div class="warn">No status.json found -- add the heartbeat snippet to bot.py to see live mode/heartbeat here.</div>
   {% endif %}

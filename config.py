@@ -73,7 +73,9 @@ DAILY_TRADE_COUNT_CAP: int | None = None
 # Resolution & retry
 # ---------------------------------------------------------------------------
 RESOLUTION_POLL_SECONDS = 15.0
-HEARTBEAT_INTERVAL_SECONDS = 180.0  # ~3 minutes
+# Heartbeat LOG lines fire on UTC clock marks :00,:05,:10,:15,... (same as market windows).
+# status.json refreshes this often so the dashboard stays current.
+STATUS_WRITE_SECONDS = 15.0
 MARKET_FETCH_INITIAL_BACKOFF_SECONDS = 2.0
 MARKET_FETCH_MAX_BACKOFF_SECONDS = 60.0
 API_RETRY_ATTEMPTS = 5

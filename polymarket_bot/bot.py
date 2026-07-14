@@ -48,7 +48,8 @@ class TradingBot:
         self.risk = RiskManager(self.ledger)
         self.strategy = MomentumStrategy()
         self._stop = threading.Event()
-        self._last_heartbeat = 0.0
+        self._last_heartbeat_bucket: int | None = None
+        self._last_status_write = 0.0
         self._polls = 0
         self._current_market: MarketInfo | None = None
 
@@ -302,42 +303,63 @@ class TradingBot:
             )
             self.risk.note_resolution()
 
-    def _heartbeat_maybe(self) -> None:
-        now = time.monotonic()
-        if now - self._last_heartbeat < config.HEARTBEAT_INTERVAL_SECONDS:
-            return
-        self._last_heartbeat = now
+    def _status_payload(self) -> dict[str, Any]:
         market = self._current_market
-        pnl = self.risk.daily_realized_pnl()
-        trades = self.risk.daily_trade_count()
-        secs_to_close = (
-            self.strategy.seconds_to_close(market.close_ts) if market else -1
-        )
-        logger.info(
-            "HEARTBEAT alive polls=%s dry_run=%s market=%s secs_to_close=%.0f "
-            "traded_window=%s daily_pnl=%.4f daily_trades=%s",
-            self._polls,
-            config.DRY_RUN,
-            market.slug if market else "-",
-            secs_to_close,
-            self.strategy.traded_this_window,
-            pnl,
-            trades,
-        )
+        close_ts = market.close_ts if market else window_close_ts()
+        close_dt = datetime.fromtimestamp(close_ts, tz=timezone.utc)
+        secs = close_ts - time.time()
+        return {
+            "polls": self._polls,
+            "market": market.slug if market else None,
+            "window_close_ts": close_ts,
+            "window_close_utc": close_dt.strftime("%Y-%m-%d %H:%M:%SZ"),
+            "secs_to_close": round(secs, 1),
+            "traded_window": self.strategy.traded_this_window,
+            "daily_pnl": self.risk.daily_realized_pnl(),
+            "daily_trades": self.risk.daily_trade_count(),
+        }
+
+    def _write_status_file(self) -> None:
         try:
-            write_status(
-                config.DRY_RUN,
-                extra={
-                    "polls": self._polls,
-                    "market": market.slug if market else None,
-                    "secs_to_close": secs_to_close,
-                    "traded_window": self.strategy.traded_this_window,
-                    "daily_pnl": pnl,
-                    "daily_trades": trades,
-                },
-            )
-        except Exception as exc:  # noqa: BLE001 — dashboard status must not crash bot
+            write_status(config.DRY_RUN, extra=self._status_payload())
+        except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to write status.json: %s", exc)
+
+    def _heartbeat_maybe(self) -> None:
+        """
+        Markets and heartbeat logs use UTC wall-clock 5m marks
+        (:00, :05, :10, :15, …), not “N minutes since process start”.
+
+        Price polling still runs every POLL_INTERVAL_SECONDS inside each window.
+        status.json refreshes every STATUS_WRITE_SECONDS for the dashboard.
+        """
+        wall = time.time()
+        if wall - self._last_status_write >= config.STATUS_WRITE_SECONDS:
+            self._last_status_write = wall
+            self._write_status_file()
+
+        bucket = int(wall) // int(config.MARKET_WINDOW_SECONDS)
+        if self._last_heartbeat_bucket == bucket:
+            return
+        self._last_heartbeat_bucket = bucket
+
+        payload = self._status_payload()
+        logger.info(
+            "HEARTBEAT alive polls=%s dry_run=%s market=%s "
+            "window_close_utc=%s secs_to_close=%.0f traded_window=%s "
+            "daily_pnl=%.4f daily_trades=%s",
+            payload["polls"],
+            config.DRY_RUN,
+            payload["market"] or "-",
+            payload["window_close_utc"],
+            payload["secs_to_close"],
+            payload["traded_window"],
+            payload["daily_pnl"],
+            payload["daily_trades"],
+        )
+        self._last_status_write = wall
+        self._write_status_file()
+
 
 
 def main() -> None:
