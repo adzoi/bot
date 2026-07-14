@@ -135,8 +135,25 @@ python start.py   # starts the bot + dashboard on $PORT
 
 `Procfile` / `railway.json` already set this as the start command. After
 deploy, open your Railway URL (e.g. `https://….up.railway.app`) for the
-live dashboard. Set secrets (`PK`, etc.) in the Railway Variables UI —
-do not commit `.env`.
+live dashboard. Set secrets in the Railway Variables UI — do not commit `.env`.
+
+### Go live on Railway
+
+1. Fund the trading wallet with pUSD (+ gas if needed) and complete Polymarket
+   trading / allowance enablement for your account type.
+2. In Railway → Variables, set at least:
+
+| Variable | Example |
+| --- | --- |
+| `PK` | your wallet private key |
+| `SIGNATURE_TYPE` | `0` (EOA), `1` (Magic), or `2` (proxy/Safe) |
+| `FUNDER_ADDRESS` | proxy/Safe address (required for types 1/2) |
+| `DRY_RUN` | `false` |
+
+3. Redeploy. Confirm logs show `dry_run=False` (not True).
+4. Watch the Railway dashboard URL for mode **LIVE** and ledger rows.
+
+Keep the public GitHub default as dry-run; only the host env flips live.
 
 Note: the container filesystem is ephemeral unless you attach a Railway
 volume to `/app/data` (or set `LEDGER_DB_PATH` to a mounted path).

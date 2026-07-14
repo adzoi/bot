@@ -9,7 +9,12 @@ DRY_RUN defaults to True. You must manually set DRY_RUN = False to risk real fun
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Paths / process
@@ -17,7 +22,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_ROOT / "data"
 LOG_DIR = PROJECT_ROOT / "logs"
-LEDGER_DB_PATH = DATA_DIR / "trades.sqlite3"
+LEDGER_DB_PATH = Path(
+    os.environ.get("LEDGER_DB_PATH") or (DATA_DIR / "trades.sqlite3")
+)
 LOG_FILE_PATH = LOG_DIR / "bot.log"
 
 # Rotating file logs
@@ -25,10 +32,15 @@ LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MiB
 LOG_BACKUP_COUNT = 14
 
 # ---------------------------------------------------------------------------
-# Safety — MUST be set False manually to place real orders
+# Safety — defaults to dry-run; set env DRY_RUN=false to risk real funds
 # ---------------------------------------------------------------------------
-# DRY_RUN must be manually set to False to risk real funds.
-DRY_RUN: bool = True
+# DRY_RUN must be manually set to False (env or below) to risk real funds.
+# Prefer Railway / .env: DRY_RUN=false — do not commit False to a public repo.
+_dry = os.environ.get("DRY_RUN")
+if _dry is None:
+    DRY_RUN: bool = True
+else:
+    DRY_RUN = _dry.strip().lower() in {"1", "true", "yes", "on"}
 
 # ---------------------------------------------------------------------------
 # Market identity
